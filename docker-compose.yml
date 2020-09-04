@@ -9,3 +9,13 @@ services:
       POSTGRES_DB: 'trading'
       POSTGRES_USER: 'trading'
       POSTGRES_PASSWORD: 'trading'
+
+  mongo:
+    image: 'mongo'
+    environment:
+      MONGO_INITDB_DATABASE: trading
+      MONGO_INITDB_ROOT_USERNAME: trading
+      MONGO_INITDB_ROOT_PASSWORD: trading
+    ports:
+      - "27017-27019:27017-27019"
+    

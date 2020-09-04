@@ -15,6 +15,7 @@ DB_PASSWORD = env.str('DB_PASSWORD', 'trading')
 
 TINKOFF_URL = 'https://api-invest.tinkoff.ru/openapi/'
 TINKOFF_SANDBOX_URL = TINKOFF_URL + 'sandbox/'
+TINKOFF_STREAMING_URL = 'wss://api-invest.tinkoff.ru/openapi/md/v1/md-openapi/ws'
 
 TINKOFF_SANDBOX_TOKEN = env.str('TINKOFF_SANDBOX_TOKEN')
 TINKOFF_TRADING_TOKEN = env.str('TINKOFF_TRADING_TOKEN')
