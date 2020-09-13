@@ -11,3 +11,4 @@ yfinance==0.1.54
 environs==8.0.0
 pandas==1.1.1
 websocket-client==0.57.0
+tqdm==4.47.0

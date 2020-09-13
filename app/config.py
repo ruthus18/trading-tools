@@ -22,4 +22,4 @@ TINKOFF_TRADING_TOKEN = env.str('TINKOFF_TRADING_TOKEN')
 
 
 TZ_NAME = env.str('TZ_NAME', 'Asia/Yekaterinburg')
-TIMEZONE = pytz.timezone(TZ_NAME) 
+TIMEZONE = pytz.timezone(TZ_NAME)

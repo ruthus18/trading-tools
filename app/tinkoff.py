@@ -1,17 +1,15 @@
 import datetime as dt
-import enum
 import json
 import logging
 import typing as t
 from decimal import Decimal
 
 import requests
-from pydantic import BaseModel
 import websocket
 from websocket._app import WebSocketApp
 
 from . import config
-
+from .schemas import Candle, Instrument, Interval, PortfolioItem
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,6 +17,9 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+
+USD_FIGI = 'BBG0013HGFT4'
 
 
 def make_tz_aware(dt: dt.datetime) -> str:
@@ -42,48 +43,6 @@ class APIError(requests.RequestException):
 
 class StreamingError(RuntimeError):
     pass
-
-
-class Interval(str, enum.Enum):
-    M1 = '1min'
-    M2 = '2min'
-    M3 = '3min'
-    M5 = '5min'
-    M10 = '10min'
-    M15 = '15min'
-    M30 = '30min'
-    H1 = 'hour'
-    D1 = 'day'
-    D7 = 'week'
-    D30 = 'month'
-
-    def __str__(self):
-        return self.value
-
-
-class Currency(str, enum.Enum):
-    USD = 'USD'
-    RUB = 'RUB'
-    EUR = 'EUR'
-
-    def __str__(self):
-        return self.value
-
-
-class Instrument(BaseModel):
-    name: str
-    ticker: str
-    currency: Currency
-    figi: str
-
-
-class Candle(BaseModel):
-    open: Decimal
-    high: Decimal
-    low: Decimal
-    close: Decimal
-    volume: Decimal
-    time: dt.datetime
 
 
 class TinkoffClient:
@@ -131,8 +90,30 @@ class TinkoffClient:
         })
         return response_data['brokerAccountId']
 
-    def get_portfolio(self) -> dict:
-        return self.request('GET', 'portfolio')
+    def get_portfolio(self) -> t.List[PortfolioItem]:
+        portfolio_data = self.request('GET', 'portfolio')['positions']
+        return [
+            PortfolioItem(
+                instrument=Instrument(
+                    name=item['name'],
+                    ticker=item['ticker'],
+                    figi=item['figi'],
+                    currency=item['averagePositionPrice']['currency']
+                ),
+                lots=item['lots'],
+            )
+            for item in portfolio_data
+            if item['figi'] != USD_FIGI
+        ]
+
+    def get_balance_usd(self) -> Decimal:
+        portfolio = self.get_portfolio()
+
+        for asset in portfolio:
+            if asset['figi'] == USD_FIGI:
+                return Decimal(asset['balance'])
+
+        return Decimal(0)
 
     def get_stocks(self) -> t.List[Instrument]:
 
@@ -175,6 +156,21 @@ class TinkoffClient:
             for candle in response['candles']
         )
 
+    def sandbox_set_balance(self, amount=Decimal(10000)):
+        self.request('POST', 'sandbox/positions/balance', data={
+            'figi': USD_FIGI,
+            'balance': float(amount)
+        })
+
+    # def limit_order(self, ...):
+    #     ...
+
+    # def market_order(self, ...):
+    #     ...
+
+    # def cancel_order(self, ...):
+    #     ...
+
 
 class TinkoffStreamClient:
     """Client for getting real-time data from Invest API
@@ -187,12 +183,19 @@ class TinkoffStreamClient:
 
     @staticmethod
     def subscribe_candles(ws: WebSocketApp, candles_sub: dict):
+        """Subscribe to candles info.
 
+        `candles_sub` dict contains elements like (figi code -> candle interval):
+        >>> {
+        >>>     'BBG0013HGFT4': Interval.M5,
+        >>>     ...
+        >>> }
+        """
         for figi, interval in candles_sub.items():
             body = {'event': 'candle:subscribe', 'figi': figi, "interval": interval}
             ws.send(json.dumps(body))
 
-            logger.info('Subscribed to candles of %s', figi)
+            logger.info('Subscribed to candle (FIGI=%s)', figi)
 
         logger.info('Stream connection started')
 
@@ -229,10 +232,7 @@ class TinkoffStreamClient:
             ws.run_forever()
         except KeyboardInterrupt:
             ws.close()
-        except Exception:
-            ws.close()
             logger.info('Stream connection closed')
-            raise
 
 
 client = TinkoffClient(config.TINKOFF_SANDBOX_URL, config.TINKOFF_SANDBOX_TOKEN)
