@@ -8,7 +8,7 @@ import requests
 import websocket
 from websocket._app import WebSocketApp
 
-from . import config
+from . import config, models
 from .schemas import Candle, Instrument, Interval, PortfolioItem
 
 logging.basicConfig(
@@ -219,7 +219,7 @@ class TinkoffStreamClient:
 
         if not candles_sub:
             logger.warning('No candles to subscribe!')
-            candles_sub = candles_sub or {}
+            candles_sub = {}
 
         ws = websocket.WebSocketApp(
             url=self._url,
@@ -237,3 +237,20 @@ class TinkoffStreamClient:
 
 client = TinkoffClient(config.TINKOFF_SANDBOX_URL, config.TINKOFF_SANDBOX_TOKEN)
 stream_client = TinkoffStreamClient(config.TINKOFF_SANDBOX_TOKEN)
+
+
+def import_to_db(start_dt: dt.datetime, end_dt: dt.datetime, instrument: models.Instrument):
+    start = start_dt
+    end = start + dt.timedelta(days=7)
+
+    while end < end_dt:
+        print(f'{start} - {end}')
+        candles = list(client.get_candles(instrument.figi, interval=Interval.H1, start_dt=start, end_dt=end))
+        for candle in candles:
+            data = candle.dict()
+            data['time'] = data['time'].replace(tzinfo=None)
+
+            Candle.create(**data, instrument=instrument, interval=Interval.H1)
+
+        start = end
+        end = start + dt.timedelta(days=7)

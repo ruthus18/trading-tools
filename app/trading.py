@@ -1,9 +1,9 @@
-from .schemas import Candle
-from .market import Market
-from .utils import PriceHistory
-
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from .market import Market
+from .schemas import Candle
+from .utils import PriceHistory
 
 
 class Trader:
@@ -58,12 +58,12 @@ class MAIntersectionTrader(Trader):
 
             # 3. Calc SMA sign change
             if len(self.sma_diffs) >= 2:
-                if sma_diff > 0:
+                if sma_diff >= 0:
                     sign = 1  # SMA(2) > SMA(10)
                 elif sma_diff < 0:
                     sign = -1  # SMA(2) < SMA(10)
-                else:
-                    sign = 0  # SMA(2) = SMA(10)
+                # else:
+                #     sign = 0  # SMA(2) = SMA(10)
 
                 self.sma_signs = self.sma_signs.append(pd.Series([sign], index=[date]))
 
@@ -81,9 +81,9 @@ class MAIntersectionTrader(Trader):
         elif sign_diff == -2:
             self.market.sell()
 
-        elif prev == 0:
-            if last == 1:
-                self.market.buy()
+        # elif prev == 0:
+        #     if last == 1:
+        #         self.market.buy()
 
-            elif last == -1:
-                self.market.sell()
+        #     elif last == -1:
+        #         self.market.sell()
