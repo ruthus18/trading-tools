@@ -250,7 +250,7 @@ def import_to_db(start_dt: dt.datetime, end_dt: dt.datetime, instrument: models.
             data = candle.dict()
             data['time'] = data['time'].replace(tzinfo=None)
 
-            Candle.create(**data, instrument=instrument, interval=Interval.H1)
+            models.Candle.get_or_create(**data, instrument=instrument, interval=Interval.H1)
 
         start = end
         end = start + dt.timedelta(days=7)

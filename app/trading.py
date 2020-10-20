@@ -69,9 +69,9 @@ class MAIntersectionTrader(Trader):
 
             # 4. Generate trading signals
             if len(self.sma_signs) >= 2:
-                self.generate_signal()
+                self._generate_signal()
 
-    def generate_signal(self):
+    def _generate_signal(self):
         prev, last = self.sma_signs[-2:]
         sign_diff = last - prev
 
