@@ -1,10 +1,11 @@
+from numpy.lib.financial import ipmt
 from tortoise import Tortoise
 from tortoise import fields
 from tortoise import models
 from tortoise.fields.base import CASCADE
 
 from . import config
-from .schemas import Currency
+from . import schemas
 
 
 async def init_db():
@@ -25,7 +26,7 @@ class Instrument(models.Model):
     name = fields.TextField()
     ticker = fields.CharField(max_length=8, unique=True)
     figi = fields.CharField(max_length=32, unique=True)
-    currency = fields.TextField(default=Currency.USD)
+    currency = fields.TextField(default=schemas.Currency.USD)
 
     imported_at = fields.DatetimeField(auto_now_add=True)
 

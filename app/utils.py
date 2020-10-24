@@ -1,5 +1,4 @@
 import datetime as dt
-import typing as t
 from decimal import Decimal
 
 import numpy as np
@@ -19,11 +18,11 @@ class PriceHistory:
         if len(self.data) > self._size:
             self.data = self.data.iloc[1:]
 
-    def calc_sma(self, sma_size: int) -> t.Tuple[dt.datetime, int]:
+    def calc_sma(self, sma_size: int) -> int:
         if sma_size > self._size:
             raise ValueError(f"SMA size shouldn't be greater than {self._size}!")
 
-        return self.data.index[-1], int(self.data.rolling(sma_size).mean()[-1])
+        return int(self.data.rolling(sma_size).mean()[-1])
 
     def __len__(self):
         return len(self.data)

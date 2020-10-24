@@ -46,6 +46,9 @@ class Candle(BaseModel):
     volume: Decimal
     time: dt.datetime
 
+    class Config:
+        orm_mode = True
+
 
 class PortfolioItem(BaseModel):
     instrument: Instrument
