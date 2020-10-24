@@ -8,8 +8,12 @@ import requests
 import websocket
 from websocket._app import WebSocketApp
 
-from . import config, models
-from .schemas import Candle, Instrument, Interval, PortfolioItem
+from . import config
+from . import models
+from .schemas import Candle
+from .schemas import Instrument
+from .schemas import Interval
+from .schemas import PortfolioItem
 
 logging.basicConfig(
     level=logging.INFO,
@@ -254,3 +258,27 @@ def import_to_db(start_dt: dt.datetime, end_dt: dt.datetime, instrument: models.
 
         start = end
         end = start + dt.timedelta(days=7)
+
+
+class TinkoffImporter:
+
+    def __init__(self, tinkoff_client: TinkoffClient = None):
+        if tinkoff_client is None:
+            tinkoff_client = client
+
+        self._client = tinkoff_client
+
+    async def import_stocks(self):
+        stocks = self._client.get_stocks()
+
+        
+
+
+    async def import_candles(
+        self,
+        instrument: str,
+        start_dt: dt.datetime,
+        end_dt: dt.datetime,
+        interval=Interval.H1
+    ):
+        ...
