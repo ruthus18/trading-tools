@@ -1,7 +1,7 @@
 # Trading Tools
 
-* Client for working with Tinkoff Investments API
-
+* Client for working with Tinkoff Investments API (HTTP, WebSocket)
+* Backtesting utils
 
 ### TODO:
 

@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import itertools
 import logging
 import typing as t
 from decimal import Decimal
@@ -243,24 +244,15 @@ client = TinkoffClient(config.TINKOFF_SANDBOX_URL, config.TINKOFF_SANDBOX_TOKEN)
 stream_client = TinkoffStreamClient(config.TINKOFF_SANDBOX_TOKEN)
 
 
-def import_to_db(start_dt: dt.datetime, end_dt: dt.datetime, instrument: models.Instrument):
-    start = start_dt
-    end = start + dt.timedelta(days=7)
-
-    while end < end_dt:
-        print(f'{start} - {end}')
-        candles = list(client.get_candles(instrument.figi, interval=Interval.H1, start_dt=start, end_dt=end))
-        for candle in candles:
-            data = candle.dict()
-            data['time'] = data['time'].replace(tzinfo=None)
-
-            models.Candle.get_or_create(**data, instrument=instrument, interval=Interval.H1)
-
-        start = end
-        end = start + dt.timedelta(days=7)
-
-
 class TinkoffImporter:
+    candle_batch_size = {
+        Interval.M1: dt.timedelta(days=1),
+        Interval.M5: dt.timedelta(days=1),
+        Interval.M10: dt.timedelta(days=1),
+        Interval.M30: dt.timedelta(days=1),
+        Interval.H1: dt.timedelta(days=7),
+        Interval.D1: dt.timedelta(days=365),
+    }
 
     def __init__(self, tinkoff_client: TinkoffClient = None):
         if tinkoff_client is None:
@@ -269,16 +261,59 @@ class TinkoffImporter:
         self._client = tinkoff_client
 
     async def import_stocks(self):
-        stocks = self._client.get_stocks()
+        stocks_data = {stock.ticker: stock for stock in self._client.get_stocks()}
 
-        
+        tickers = set(stocks_data.keys())
+        db_tickers = set(await models.Instrument.all().values_list('ticker', flat=True))
 
+        to_import_tickers = tickers - db_tickers
 
+        objs = [
+            models.Instrument(**stock.dict())
+            for ticker, stock in stocks_data.items()
+            if ticker in to_import_tickers
+        ]
+        await models.Instrument.bulk_create(objs)
+
+        logger.info('Imported %s stocks', len(to_import_tickers))
+
+    # TODO: Skip already imported candles
+    # TODO: Move pagination lofic to client class
     async def import_candles(
-        self,
-        instrument: str,
-        start_dt: dt.datetime,
-        end_dt: dt.datetime,
-        interval=Interval.H1
+        self, ticker: str, start_dt: dt.datetime, end_dt: dt.datetime, interval: Interval
     ):
-        ...
+        instrument = await models.Instrument.get(ticker=ticker)
+
+        if interval in (Interval.D7, Interval.D30):
+            candles_data = self._client.get_candles(
+                instrument.figi, interval=interval, start_dt=start_dt, end_dt=end_dt
+            )
+        else:
+            batch_size = self.candle_batch_size[interval]
+
+            cursor_start = start_dt
+            cursor_end = min(cursor_start + batch_size, end_dt)
+
+            candles_data = []
+            while cursor_end <= end_dt:
+                candles_data.append(
+                    self._client.get_candles(
+                        instrument.figi, interval=interval, start_dt=cursor_start, end_dt=cursor_end
+                    )
+                )
+                cursor_start = cursor_end
+                cursor_end += batch_size
+
+            candles_data = itertools.chain.from_iterable(candles_data)
+
+        objs = []
+        for candle in candles_data:
+            data = candle.dict()
+            data['time'] = data['time'].replace(tzinfo=None)
+
+            objs.append(
+                models.Candle(**data, instrument=instrument, interval=interval)
+            )
+        await models.Candle.bulk_create(objs)
+
+        logger.info('Imported %s candles for %s', len(objs), instrument.name)

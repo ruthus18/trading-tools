@@ -84,17 +84,21 @@ class BacktesterStatistics:
         self._positions = positions
         return positions
 
+    @property
     def geo_mean(self):
         # при geo_mean < 1 торговая система убыточна
         a = np.log(self.positions.profit_ratio)
         return np.exp(a.sum() / len(a))
 
+    @property
     def profit_stats(self):
         return self.positions.profit_ratio.describe()
 
+    @property
     def profit_density(self):
         return self.positions.profit_ratio.plot.density()
 
+    @property
     def twr(self):
         return self.positions.profit_ratio.product()
 

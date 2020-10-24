@@ -14,7 +14,7 @@ async def init_db():
 class Instrument(models.Model):
     id = fields.IntField(pk=True)
 
-    name = fields.CharField(max_length=256, unique=True)
+    name = fields.TextField()
     ticker = fields.CharField(max_length=8, unique=True)
     figi = fields.CharField(max_length=32, unique=True)
     currency = fields.TextField(default=Currency.USD)

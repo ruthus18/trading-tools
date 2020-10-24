@@ -13,11 +13,8 @@ class Enum(str, enum.Enum):
 
 class Interval(Enum):
     M1 = '1min'
-    M2 = '2min'
-    M3 = '3min'
     M5 = '5min'
     M10 = '10min'
-    M15 = '15min'
     M30 = '30min'
     H1 = 'hour'
     D1 = 'day'
