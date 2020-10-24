@@ -11,6 +11,14 @@ async def init_db():
     await Tortoise.init(config.TORTOISE_ORM)
 
 
+async def db_size():
+    conn = Tortoise.get_connection("default")
+    _, result = await conn.execute_query(f"SELECT pg_database_size('{config.DB_NAME}')/1024 AS kb_size;")
+    size_mb = result[0].get('kb_size') / 1000
+
+    return f'{size_mb} MB'
+
+
 class Instrument(models.Model):
     id = fields.IntField(pk=True)
 

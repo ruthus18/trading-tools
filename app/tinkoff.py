@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import itertools
 import logging
+import time
 import typing as t
 from decimal import Decimal
 
@@ -80,6 +81,12 @@ class TinkoffClient:
             params = dict()
 
         response = self.session.request(method, self._base_url + endpoint, json=data, params=params)
+
+        if response.status_code == 429:
+            logger.info('API requests limit reached. Waiting 1 min...')
+            time.sleep(60)
+            return self.request(method, endpoint, data, params)
+
         response_data = response.json()
 
         if response_data['status'] == 'Error':
